@@ -1,0 +1,18 @@
+{
+  "name": "Test.md Reader - ずんだもん版",
+  "id": "test-md-reader-zundamon",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "capabilities": [],
+  "enableProposedApi": false,
+  "editorType": [
+    "figma",
+    "dev"
+  ],
+  "networkAccess": {
+    "allowedDomains": [
+      "none"
+    ]
+  }
+} 
