@@ -12,7 +12,8 @@
   ],
   "networkAccess": {
     "allowedDomains": [
-      "none"
-    ]
+      "https://api.anthropic.com"
+    ],
+    "reasoning": "This plugin analyzes Figma frame data using Claude AI API to provide design insights and suggestions."
   }
 } 

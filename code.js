@@ -1,108 +1,204 @@
 // Figmaプラグインのメインコード
 // test.mdファイルの内容とフレームデータをUIに表示する
 // プラグインが開始されたときの処理
-figma.showUI(__html__, { width: 500, height: 600 });
-// test.mdファイルの内容（実際のファイルから取得したものをここに記載）
-var testMdContent = '表示する';
-// 選択されたフレームのデータを取得する関数
+figma.showUI(__html__, { width: 500, height: 700 });
+// test.mdファイルの内容を読み込む関数
+async function loadTestMdContent() {
+    // 実際の実装では、ファイルシステムから読み込むか、
+    // プラグイン内に埋め込んだコンテンツを返す
+    return `# ずんだもんのテストファイル
+
+こんにちは！ぼくはずんだもん！
+
+このファイルは Figma プラグインのテスト用ファイルです。
+
+## 機能説明
+
+- test.md ファイルの表示
+- Figma フレームデータの取得
+- Claude AI による分析
+
+## 使い方
+
+1. Figma でフレームを選択
+2. 「フレームデータ取得」ボタンを押す
+3. Claude AI が分析結果を表示
+
+頑張って開発中です！`;
+}
+// フレームデータを取得する関数
 function getSelectedFrameData() {
-    var selection = figma.currentPage.selection;
+    const selection = figma.currentPage.selection;
     if (selection.length === 0) {
         return {
             error: true,
-            message: "フレームが選択されていないのだ！\nフレームを選択してから「フレームデータ取得」ボタンを押してほしいのだ。"
+            message: "エラー: フレームが選択されていません。\n\nFigma上でフレームを選択してから再度お試しください。"
         };
     }
-    var selectedNode = selection[0];
-    // フレームかどうかをチェック
+    const selectedNode = selection[0];
     if (selectedNode.type !== 'FRAME') {
         return {
             error: true,
-            message: "\u9078\u629E\u3055\u308C\u305F\u306E\u306F\u300C".concat(selectedNode.type, "\u300D\u30BF\u30A4\u30D7\u306A\u306E\u3060\u3002\n\u30D5\u30EC\u30FC\u30E0\uFF08FRAME\uFF09\u3092\u9078\u629E\u3057\u3066\u307B\u3057\u3044\u306E\u3060\uFF01")
+            message: `エラー: 選択されたオブジェクトはフレームではありません。\n\n選択されたタイプ: ${selectedNode.type}\n\nフレームを選択してから再度お試しください。`
         };
     }
-    // フレームの詳細データを取得
-    var frameData = {
-        // 基本情報
-        name: selectedNode.name,
-        type: selectedNode.type,
-        id: selectedNode.id,
+    const frameNode = selectedNode;
+    // フレームの詳細データを収集
+    const frameData = {
+        id: frameNode.id,
+        name: frameNode.name,
+        type: frameNode.type,
+        visible: frameNode.visible,
+        locked: frameNode.locked,
         // 位置とサイズ
-        position: {
-            x: selectedNode.x,
-            y: selectedNode.y
-        },
-        size: {
-            width: selectedNode.width,
-            height: selectedNode.height
-        },
-        // 表示設定
-        visible: selectedNode.visible,
-        locked: selectedNode.locked,
-        opacity: selectedNode.opacity,
-        // 背景色（もしあれば）
-        fills: Array.isArray(selectedNode.fills) && selectedNode.fills.length > 0 ? selectedNode.fills.map(function (fill) { return ({
-            type: fill.type,
-            color: fill.type === 'SOLID' ? fill.color : null,
-            opacity: fill.opacity
-        }); }) : [],
-        // 枠線（もしあれば）
-        strokes: Array.isArray(selectedNode.strokes) && selectedNode.strokes.length > 0 ? selectedNode.strokes.map(function (stroke) { return ({
-            type: stroke.type,
-            color: stroke.type === 'SOLID' ? stroke.color : null
-        }); }) : [],
-        strokeWeight: selectedNode.strokeWeight,
-        // 角の丸み
-        cornerRadius: selectedNode.cornerRadius,
-        // 子要素の数
-        childrenCount: selectedNode.children.length,
-        // 子要素の概要
-        children: selectedNode.children.slice(0, 5).map(function (child) { return ({
+        x: frameNode.x,
+        y: frameNode.y,
+        width: frameNode.width,
+        height: frameNode.height,
+        // スタイル
+        backgroundColor: frameNode.backgrounds,
+        cornerRadius: frameNode.cornerRadius,
+        // 制約
+        constraints: frameNode.constraints,
+        // 子要素の情報
+        children: frameNode.children.map(child => ({
+            id: child.id,
             name: child.name,
             type: child.type,
-            id: child.id
-        }); }),
-        // レイアウト設定（Auto Layout関連）
-        layoutMode: selectedNode.layoutMode || 'NONE',
-        primaryAxisSizingMode: selectedNode.primaryAxisSizingMode || 'AUTO',
-        counterAxisSizingMode: selectedNode.counterAxisSizingMode || 'AUTO',
-        // 取得日時
-        timestamp: new Date().toISOString()
+            visible: child.visible,
+            x: child.x,
+            y: child.y,
+            width: child.width,
+            height: child.height
+        })),
+        // レイアウト
+        layoutMode: frameNode.layoutMode,
+        paddingLeft: frameNode.paddingLeft,
+        paddingRight: frameNode.paddingRight,
+        paddingTop: frameNode.paddingTop,
+        paddingBottom: frameNode.paddingBottom,
+        itemSpacing: frameNode.itemSpacing,
+        // その他
+        opacity: frameNode.opacity,
+        blendMode: frameNode.blendMode,
+        effects: frameNode.effects
     };
     return {
         error: false,
         data: frameData
     };
 }
-// UIが準備できたときの処理
-figma.ui.onmessage = function (msg) {
+// Claude APIにリクエストを送信する関数
+async function analyzeFrameWithClaude(frameData, apiKey) {
+    try {
+        const prompt = `あなたはUIデザインの専門家です。以下のFigmaフレームデータを分析して、デザインに関する洞察や改善提案を日本語で提供してください。
+
+フレームデータ:
+${JSON.stringify(frameData, null, 2)}
+
+以下の観点から分析してください：
+1. レイアウトとデザイン構造
+2. カラーとスタイリング
+3. ユーザビリティの観点
+4. 改善提案
+5. ベストプラクティスとの比較
+
+回答は分かりやすく、具体的なアドバイスを含めてください。`;
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': apiKey,
+                'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify({
+                model: 'claude-3-sonnet-20240229',
+                max_tokens: 2000,
+                messages: [
+                    {
+                        role: 'user',
+                        content: prompt
+                    }
+                ]
+            })
+        });
+        if (!response.ok) {
+            const errorData = await response.text();
+            throw new Error(`Claude API Error: ${response.status} - ${errorData}`);
+        }
+        const data = await response.json();
+        return {
+            error: false,
+            analysis: data.content[0].text
+        };
+    }
+    catch (error) {
+        return {
+            error: true,
+            message: `Claude API接続エラー: ${error.message}`
+        };
+    }
+}
+// UIからのメッセージを処理
+figma.ui.onmessage = async (msg) => {
+    // test.mdの内容を要求された場合
     if (msg.type === 'request-content') {
-        // test.mdの内容をUIに送信
+        const content = await loadTestMdContent();
         figma.ui.postMessage({
             type: 'content-loaded',
-            content: testMdContent
+            content: content
         });
     }
+    // フレームデータを要求された場合
     if (msg.type === 'request-frame-data') {
-        // 選択されたフレームのデータを取得してUIに送信
-        var frameData = getSelectedFrameData();
+        const frameData = getSelectedFrameData();
         figma.ui.postMessage({
             type: 'frame-data-loaded',
             frameData: frameData
         });
     }
+    // Claude AI分析を要求された場合
+    if (msg.type === 'request-claude-analysis') {
+        const frameData = getSelectedFrameData();
+        if (frameData.error) {
+            figma.ui.postMessage({
+                type: 'claude-analysis-loaded',
+                analysisData: frameData
+            });
+            return;
+        }
+        // APIキーをチェック
+        if (!msg.apiKey || msg.apiKey.trim() === '') {
+            figma.ui.postMessage({
+                type: 'claude-analysis-loaded',
+                analysisData: {
+                    error: true,
+                    message: "エラー: Claude API キーが設定されていません。\n\nAPI キーを入力してから再度お試しください。"
+                }
+            });
+            return;
+        }
+        // Claude APIで分析
+        const analysisResult = await analyzeFrameWithClaude(frameData.data, msg.apiKey);
+        figma.ui.postMessage({
+            type: 'claude-analysis-loaded',
+            analysisData: analysisResult
+        });
+    }
+    // プラグインを閉じる
     if (msg.type === 'close-plugin') {
-        // プラグインを閉じる
         figma.closePlugin();
     }
+    // その他のメッセージタイプの場合、デフォルトでコンテンツをロード
+    const knownTypes = ['request-content', 'request-frame-data', 'request-claude-analysis', 'close-plugin'];
+    if (!knownTypes.includes(msg.type)) {
+        const content = await loadTestMdContent();
+        figma.ui.postMessage({
+            type: 'content-loaded',
+            content: content
+        });
+    }
 };
-// プラグイン起動時にtest.mdの内容を自動的に読み込む
-setTimeout(function () {
-    figma.ui.postMessage({
-        type: 'content-loaded',
-        content: testMdContent
-    });
-}, 100);
 console.log('------------------------');
 console.log('起動成功');
 console.log('------------------------');
