@@ -1,29 +1,28 @@
-"use strict";
 // Figmaプラグインのメインコード
 // test.mdファイルの内容とフレームデータをUIに表示する
 // プラグインが開始されたときの処理
 figma.showUI(__html__, { width: 500, height: 600 });
 // test.mdファイルの内容（実際のファイルから取得したものをここに記載）
-const testMdContent = 'test'
+var testMdContent = '表示する';
 // 選択されたフレームのデータを取得する関数
 function getSelectedFrameData() {
-    const selection = figma.currentPage.selection;
+    var selection = figma.currentPage.selection;
     if (selection.length === 0) {
         return {
             error: true,
-            message: "フレームが選択されていない\nフレームを選択してから「フレームデータ取得」ボタンを押してほしい"
+            message: "フレームが選択されていないのだ！\nフレームを選択してから「フレームデータ取得」ボタンを押してほしいのだ。"
         };
     }
-    const selectedNode = selection[0];
+    var selectedNode = selection[0];
     // フレームかどうかをチェック
     if (selectedNode.type !== 'FRAME') {
         return {
             error: true,
-            message: `選択されたのは「${selectedNode.type}」タイプなのだ。\nフレーム（FRAME）を選択してほしい！`
+            message: "\u9078\u629E\u3055\u308C\u305F\u306E\u306F\u300C".concat(selectedNode.type, "\u300D\u30BF\u30A4\u30D7\u306A\u306E\u3060\u3002\n\u30D5\u30EC\u30FC\u30E0\uFF08FRAME\uFF09\u3092\u9078\u629E\u3057\u3066\u307B\u3057\u3044\u306E\u3060\uFF01")
         };
     }
     // フレームの詳細データを取得
-    const frameData = {
+    var frameData = {
         // 基本情報
         name: selectedNode.name,
         type: selectedNode.type,
@@ -42,27 +41,27 @@ function getSelectedFrameData() {
         locked: selectedNode.locked,
         opacity: selectedNode.opacity,
         // 背景色（もしあれば）
-        fills: Array.isArray(selectedNode.fills) && selectedNode.fills.length > 0 ? selectedNode.fills.map((fill) => ({
+        fills: Array.isArray(selectedNode.fills) && selectedNode.fills.length > 0 ? selectedNode.fills.map(function (fill) { return ({
             type: fill.type,
             color: fill.type === 'SOLID' ? fill.color : null,
             opacity: fill.opacity
-        })) : [],
+        }); }) : [],
         // 枠線（もしあれば）
-        strokes: Array.isArray(selectedNode.strokes) && selectedNode.strokes.length > 0 ? selectedNode.strokes.map((stroke) => ({
+        strokes: Array.isArray(selectedNode.strokes) && selectedNode.strokes.length > 0 ? selectedNode.strokes.map(function (stroke) { return ({
             type: stroke.type,
             color: stroke.type === 'SOLID' ? stroke.color : null
-        })) : [],
+        }); }) : [],
         strokeWeight: selectedNode.strokeWeight,
         // 角の丸み
         cornerRadius: selectedNode.cornerRadius,
         // 子要素の数
         childrenCount: selectedNode.children.length,
         // 子要素の概要
-        children: selectedNode.children.slice(0, 5).map((child) => ({
+        children: selectedNode.children.slice(0, 5).map(function (child) { return ({
             name: child.name,
             type: child.type,
             id: child.id
-        })),
+        }); }),
         // レイアウト設定（Auto Layout関連）
         layoutMode: selectedNode.layoutMode || 'NONE',
         primaryAxisSizingMode: selectedNode.primaryAxisSizingMode || 'AUTO',
@@ -76,7 +75,7 @@ function getSelectedFrameData() {
     };
 }
 // UIが準備できたときの処理
-figma.ui.onmessage = (msg) => {
+figma.ui.onmessage = function (msg) {
     if (msg.type === 'request-content') {
         // test.mdの内容をUIに送信
         figma.ui.postMessage({
@@ -86,7 +85,7 @@ figma.ui.onmessage = (msg) => {
     }
     if (msg.type === 'request-frame-data') {
         // 選択されたフレームのデータを取得してUIに送信
-        const frameData = getSelectedFrameData();
+        var frameData = getSelectedFrameData();
         figma.ui.postMessage({
             type: 'frame-data-loaded',
             frameData: frameData
@@ -98,10 +97,12 @@ figma.ui.onmessage = (msg) => {
     }
 };
 // プラグイン起動時にtest.mdの内容を自動的に読み込む
-setTimeout(() => {
+setTimeout(function () {
     figma.ui.postMessage({
         type: 'content-loaded',
         content: testMdContent
     });
 }, 100);
-console.log('ずんだもんのフレームデータリーダープラグインが起動した！');
+console.log('------------------------');
+console.log('起動成功');
+console.log('------------------------');

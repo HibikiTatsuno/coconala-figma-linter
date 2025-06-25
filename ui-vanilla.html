@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Frame Data Reader</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
+      color: #2d3436;
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    .container {
+      max-width: 500px;
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #ffeaa7;
+    }
+
+    .header h1 {
+      color: #e17055;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 15px;
+      justify-content: center;
+    }
+
+    .tab-button {
+      background: #ddd;
+      color: #666;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+
+    .tab-button.active {
+      background: #e17055;
+      color: white;
+    }
+
+    .tab-button:hover:not(.active) {
+      background: #ccc;
+    }
+
+    .instruction {
+      background: #81ecec;
+      padding: 10px;
+      border-radius: 8px;
+      margin: 10px 0;
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .content {
+      background: #fdcb6e;
+      border-radius: 10px;
+      padding: 15px;
+      margin: 15px 0;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      font-family: 'Monaco', 'Consolas', monospace;
+      font-size: 12px;
+      max-height: 350px;
+      overflow-y: auto;
+      border: 2px solid #e17055;
+    }
+
+    .content.json {
+      background: #74b9ff;
+      color: white;
+    }
+
+    .content.error {
+      background: #ff7675;
+      color: white;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background: #e17055;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+
+    button:hover {
+      background: #d63031;
+      transform: translateY(-1px);
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .frame-button {
+      background: #00b894;
+    }
+
+    .frame-button:hover {
+      background: #00a085;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 12px;
+      font-size: 10px;
+      color: #636e72;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Frame Data Reader</h1>
+      <div style="font-size: 28px; margin: 8px 0;">🟡</div>
+      <p style="font-size: 12px; color: #636e72;">フレームデータリーダー</p>
+    </div>
+
+    <div class="tabs">
+      <button id="tab-md" class="tab-button active">test.md表示</button>
+      <button id="tab-frame" class="tab-button">フレームデータ</button>
+    </div>
+
+    <div id="instruction" class="instruction">
+      test.mdファイルの内容を表示中
+    </div>
+
+    <div id="content" class="content">
+      読み込み中...
+    </div>
+
+    <div class="buttons">
+      <button id="btn-content">test.md再読込</button>
+      <button id="btn-frame" class="frame-button">フレームデータ取得</button>
+      <button id="btn-close">閉じる</button>
+    </div>
+
+    <div class="footer">
+      フレームデータを取得するプラグインです ✨
+    </div>
+  </div>
+
+  <script>
+    let currentTab = 'md';
+
+    // DOM要素の取得
+    const tabMd = document.getElementById('tab-md');
+    const tabFrame = document.getElementById('tab-frame');
+    const instruction = document.getElementById('instruction');
+    const content = document.getElementById('content');
+    const btnContent = document.getElementById('btn-content');
+    const btnFrame = document.getElementById('btn-frame');
+    const btnClose = document.getElementById('btn-close');
+
+    // メッセージ送信関数
+    function sendMessage(type, data = {}) {
+      parent.postMessage({ pluginMessage: { type, ...data } }, '*');
+    }
+
+    function requestContent() {
+      sendMessage('request-content');
+    }
+
+    function requestFrameData() {
+      sendMessage('request-frame-data');
+    }
+
+    function closePlugin() {
+      sendMessage('close-plugin');
+    }
+
+    // タブ切り替え
+    function switchTab(tab) {
+      currentTab = tab;
+
+      // タブスタイル更新
+      if (tab === 'md') {
+        tabMd.classList.add('active');
+        tabFrame.classList.remove('active');
+        requestContent();
+      } else {
+        tabMd.classList.remove('active');
+        tabFrame.classList.add('active');
+        instruction.textContent = 'フレームを選択してから「フレームデータ取得」ボタンを押してください';
+        content.textContent = 'フレームが選択されていません...\n\n1. Figmaでフレームを選択する\n2. 「フレームデータ取得」ボタンを押す\n3. フレーム情報がJSONで表示される';
+        content.className = 'content';
+      }
+    }
+
+    // イベントリスナー
+    tabMd.addEventListener('click', () => switchTab('md'));
+    tabFrame.addEventListener('click', () => switchTab('frame'));
+    btnContent.addEventListener('click', requestContent);
+    btnFrame.addEventListener('click', requestFrameData);
+    btnClose.addEventListener('click', closePlugin);
+
+    // Figmaメッセージ受信
+    window.addEventListener('message', (event) => {
+      const msg = event.data.pluginMessage;
+
+      if (msg.type === 'content-loaded') {
+        content.textContent = msg.content;
+        content.className = 'content';
+        instruction.textContent = 'test.mdファイルの内容を表示中です';
+      }
+
+      if (msg.type === 'frame-data-loaded') {
+        const frameData = msg.frameData;
+
+        if (frameData.error) {
+          content.textContent = frameData.message;
+          content.className = 'content error';
+        } else {
+          const jsonString = JSON.stringify(frameData.data, null, 2);
+          content.textContent = jsonString;
+          content.className = 'content json';
+          instruction.textContent = `フレーム「${frameData.data.name}」のデータを表示中です`;
+        }
+      }
+    });
+
+    // 初期化
+    setTimeout(requestContent, 300);
+  </script>
+</body>
+
+</html>

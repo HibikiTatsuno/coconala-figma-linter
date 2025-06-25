@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Frame Data Reader</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -29,158 +32,234 @@
   </script>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-warm-yellow to-warm-orange p-4 text-text-dark font-sans">
-  <div class="max-w-full bg-white rounded-2xl p-5 shadow-2xl mb-5">
-    <!-- Header -->
-    <div class="text-center mb-5 pb-4 border-b-2 border-warm-yellow">
-      <h1 class="text-primary text-xl font-bold m-0">Frame Data Reader</h1>
-      <div class="text-3xl my-2">🟡</div>
-      <p class="text-sm text-text-gray m-0">フレームデータリーダー</p>
-    </div>
-    
-    <!-- Tabs -->
-    <div class="flex gap-1 mb-4 justify-center">
-      <button 
-        id="tab-md"
-        class="tab-button bg-primary text-white px-4 py-2 rounded-md cursor-pointer text-xs font-bold transition-all duration-300 hover:-translate-y-0.5 focus:outline-none" 
-        onclick="switchTab('md')"
-      >
-        test.md表示
-      </button>
-      <button 
-        id="tab-frame"
-        class="tab-button bg-gray-300 text-gray-600 px-4 py-2 rounded-md cursor-pointer text-xs font-bold transition-all duration-300 hover:bg-gray-400 focus:outline-none" 
-        onclick="switchTab('frame')"
-      >
-        フレームデータ
-      </button>
-    </div>
-    
-    <!-- Instruction -->
-    <div id="instruction" class="bg-light-blue p-3 rounded-lg my-3 text-xs text-text-dark text-center">
-      test.mdファイルの内容を表示中
-    </div>
-    
-    <!-- Content -->
-    <div 
-      id="content" 
-      class="bg-content-bg rounded-lg p-4 my-4 leading-relaxed whitespace-pre-wrap font-mono text-xs max-h-80 overflow-y-auto border-2 border-primary"
-    >
-      <div class="text-center text-text-gray italic">読み込み中...</div>
-    </div>
-    
-    <!-- Buttons -->
-    <div class="flex gap-2 justify-center mt-4 flex-wrap">
-      <button 
-        onclick="requestContent()"
-        class="bg-primary text-white px-4 py-2 rounded-md cursor-pointer text-xs font-bold transition-all duration-300 hover:bg-primary-dark hover:-translate-y-0.5 hover:shadow-lg focus:outline-none"
-      >
-        test.md再読込
-      </button>
-      <button 
-        onclick="requestFrameData()"
-        class="bg-success text-white px-4 py-2 rounded-md cursor-pointer text-xs font-bold transition-all duration-300 hover:bg-success-dark hover:-translate-y-0.5 hover:shadow-lg focus:outline-none"
-      >
-        フレームデータ取得
-      </button>
-      <button 
-        onclick="closePlugin()"
-        class="bg-primary text-white px-4 py-2 rounded-md cursor-pointer text-xs font-bold transition-all duration-300 hover:bg-primary-dark hover:-translate-y-0.5 hover:shadow-lg focus:outline-none"
-      >
-        閉じる
-      </button>
-    </div>
-    
-    <!-- Footer -->
-    <div class="text-center mt-3 text-xs text-text-gray">
-      フレームデータを取得するプラグインです ✨
-    </div>
-  </div>
+  <div id="root"></div>
 
-  <script>
-    let currentTab = 'md';
-    
-    // Figmaプラグインからのメッセージを受信
-    window.onmessage = (event) => {
-      const msg = event.data.pluginMessage;
-      
-      if (msg.type === 'content-loaded') {
-        // test.mdの内容を表示
-        const contentDiv = document.getElementById('content');
-        contentDiv.textContent = msg.content;
-        contentDiv.className = 'bg-content-bg rounded-lg p-4 my-4 leading-relaxed whitespace-pre-wrap font-mono text-xs max-h-80 overflow-y-auto border-2 border-primary';
-        contentDiv.scrollTop = 0;
-        
-        // 指示テキストを更新
-        document.getElementById('instruction').textContent = 'test.mdファイルの内容を表示中です';
-      }
-      
-      if (msg.type === 'frame-data-loaded') {
-        // フレームデータを表示
-        const contentDiv = document.getElementById('content');
-        const frameData = msg.frameData;
-        
-        if (frameData.error) {
-          // エラーの場合
-          contentDiv.textContent = frameData.message;
-          contentDiv.className = 'bg-error text-white rounded-lg p-4 my-4 leading-relaxed whitespace-pre-wrap font-mono text-xs max-h-80 overflow-y-auto border-2 border-primary text-center font-bold';
-        } else {
-          // 成功の場合、JSONを整形して表示
-          const jsonString = JSON.stringify(frameData.data, null, 2);
-          contentDiv.textContent = jsonString;
-          contentDiv.className = 'bg-info text-white rounded-lg p-4 my-4 leading-relaxed whitespace-pre-wrap font-mono text-xs max-h-80 overflow-y-auto border-2 border-primary';
-          
-          // 指示テキストを更新
-          document.getElementById('instruction').textContent = `フレーム「${frameData.data.name}」のデータを表示中です`;
-        }
-        
-        contentDiv.scrollTop = 0;
-      }
-    };
-    
-    // タブ切り替え
-    function switchTab(tab) {
-      currentTab = tab;
-      
-      // タブボタンのスタイル更新
-      const tabMd = document.getElementById('tab-md');
-      const tabFrame = document.getElementById('tab-frame');
-      
-      if (tab === 'md') {
-        tabMd.className = 'tab-button bg-primary text-white px-4 py-2 rounded-md cursor-pointer text-xs font-bold transition-all duration-300 hover:-translate-y-0.5 focus:outline-none';
-        tabFrame.className = 'tab-button bg-gray-300 text-gray-600 px-4 py-2 rounded-md cursor-pointer text-xs font-bold transition-all duration-300 hover:bg-gray-400 focus:outline-none';
-        requestContent();
-      } else if (tab === 'frame') {
-        tabMd.className = 'tab-button bg-gray-300 text-gray-600 px-4 py-2 rounded-md cursor-pointer text-xs font-bold transition-all duration-300 hover:bg-gray-400 focus:outline-none';
-        tabFrame.className = 'tab-button bg-primary text-white px-4 py-2 rounded-md cursor-pointer text-xs font-bold transition-all duration-300 hover:-translate-y-0.5 focus:outline-none';
-        document.getElementById('instruction').textContent = 'フレームを選択してから「フレームデータ取得」ボタンを押してください';
-        
-        const contentDiv = document.getElementById('content');
-        contentDiv.textContent = 'フレームが選択されていません...\n\n1. Figmaでフレームを選択する\n2. 「フレームデータ取得」ボタンを押す\n3. フレーム情報がJSONで表示される';
-        contentDiv.className = 'bg-content-bg rounded-lg p-4 my-4 leading-relaxed whitespace-pre-wrap font-mono text-xs max-h-80 overflow-y-auto border-2 border-primary';
-      }
-    }
-    
-    // test.mdコンテンツの再読み込みを要求
-    function requestContent() {
-      parent.postMessage({ pluginMessage: { type: 'request-content' } }, '*');
-    }
-    
-    // フレームデータの取得を要求
-    function requestFrameData() {
-      parent.postMessage({ pluginMessage: { type: 'request-frame-data' } }, '*');
-    }
-    
-    // プラグインを閉じる
-    function closePlugin() {
-      parent.postMessage({ pluginMessage: { type: 'close-plugin' } }, '*');
-    }
-    
-    // ページが読み込まれたときにコンテンツを要求
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        requestContent();
-      }, 300);
-    });
+  <script type="text/babel">
+          const { useState, useEffect } = React;
+
+          // Constants
+          const MESSAGE_TYPES = {
+            CONTENT_LOADED: 'content-loaded',
+            FRAME_DATA_LOADED: 'frame-data-loaded',
+            REQUEST_CONTENT: 'request-content',
+            REQUEST_FRAME_DATA: 'request-frame-data',
+            CLOSE_PLUGIN: 'close-plugin'
+          };
+
+          const CONTENT_TYPES = {
+            DEFAULT: 'default',
+            ERROR: 'error',
+            JSON: 'json',
+            LOADING: 'loading'
+          };
+
+          const TAB_TYPES = {
+            MD: 'md',
+            FRAME: 'frame'
+          };
+
+          // Message Functions
+          const sendPluginMessage = (type, data = {}) => {
+            parent.postMessage({ pluginMessage: { type, ...data } }, '*');
+          };
+
+          const requestContent = () => {
+            sendPluginMessage(MESSAGE_TYPES.REQUEST_CONTENT);
+          };
+
+          const requestFrameData = () => {
+            sendPluginMessage(MESSAGE_TYPES.REQUEST_FRAME_DATA);
+          };
+
+          const closePlugin = () => {
+            sendPluginMessage(MESSAGE_TYPES.CLOSE_PLUGIN);
+          };
+
+          // Header Component
+          const Header = () => {
+            return (
+              <div className="text-center mb-5 pb-4 border-b-2 border-warm-yellow">
+                <h1 className="text-primary text-xl font-bold m-0">Frame Data Reader</h1>
+                <div className="text-3xl my-2">🟡</div>
+                <p className="text-sm text-text-gray m-0">フレームデータリーダー</p>
+              </div>
+            );
+          };
+
+          // Tabs Component
+          const Tabs = ({ currentTab, onTabChange }) => {
+            return (
+              <div className="flex gap-1 mb-4 justify-center">
+                <button
+                  className={`px-4 py-2 rounded-md cursor-pointer text-xs font-bold transition-all duration-300 focus:outline-none ${currentTab === TAB_TYPES.MD
+                    ? 'bg-primary text-white hover:-translate-y-0.5'
+                    : 'bg-gray-300 text-gray-600 hover:bg-gray-400'
+                    }`}
+                  onClick={() => onTabChange(TAB_TYPES.MD)}
+                >
+                  test.md表示
+                </button>
+                <button
+                  className={`px-4 py-2 rounded-md cursor-pointer text-xs font-bold transition-all duration-300 focus:outline-none ${currentTab === TAB_TYPES.FRAME
+                    ? 'bg-primary text-white hover:-translate-y-0.5'
+                    : 'bg-gray-300 text-gray-600 hover:bg-gray-400'
+                    }`}
+                  onClick={() => onTabChange(TAB_TYPES.FRAME)}
+                >
+                  フレームデータ
+                </button>
+              </div>
+            );
+          };
+
+          // Instruction Component
+          const Instruction = ({ message }) => {
+            return (
+              <div className="bg-light-blue p-3 rounded-lg my-3 text-xs text-text-dark text-center">
+                {message}
+              </div>
+            );
+          };
+
+          // Content Component
+          const Content = ({ content, contentType }) => {
+            const getContentClassName = () => {
+              const baseClass = "rounded-lg p-4 my-4 leading-relaxed whitespace-pre-wrap font-mono text-xs max-h-80 overflow-y-auto border-2 border-primary";
+
+              switch (contentType) {
+                case CONTENT_TYPES.ERROR:
+                  return `bg-error text-white ${baseClass} text-center font-bold`;
+                case CONTENT_TYPES.JSON:
+                  return `bg-info text-white ${baseClass}`;
+                case CONTENT_TYPES.LOADING:
+                  return `bg-content-bg ${baseClass}`;
+                default:
+                  return `bg-content-bg ${baseClass}`;
+              }
+            };
+
+            return (
+              <div className={getContentClassName()}>
+                {contentType === CONTENT_TYPES.LOADING ? (
+                  <div className="text-center text-text-gray italic">{content}</div>
+                ) : (
+                  content
+                )}
+              </div>
+            );
+          };
+
+          // Buttons Component
+          const Buttons = ({ onRequestContent, onRequestFrameData, onClose }) => {
+            return (
+              <div className="flex gap-2 justify-center mt-4 flex-wrap">
+                <button
+                  onClick={onRequestContent}
+                  className="bg-primary text-white px-4 py-2 rounded-md cursor-pointer text-xs font-bold transition-all duration-300 hover:bg-primary-dark hover:-translate-y-0.5 hover:shadow-lg focus:outline-none"
+                >
+                  test.md再読込
+                </button>
+                <button
+                  onClick={onRequestFrameData}
+                  className="bg-success text-white px-4 py-2 rounded-md cursor-pointer text-xs font-bold transition-all duration-300 hover:bg-success-dark hover:-translate-y-0.5 hover:shadow-lg focus:outline-none"
+                >
+                  フレームデータ取得
+                </button>
+                <button
+                  onClick={onClose}
+                  className="bg-primary text-white px-4 py-2 rounded-md cursor-pointer text-xs font-bold transition-all duration-300 hover:bg-primary-dark hover:-translate-y-0.5 hover:shadow-lg focus:outline-none"
+                >
+                  閉じる
+                </button>
+              </div>
+            );
+          };
+
+          // Footer Component
+          const Footer = () => {
+            return (
+              <div className="text-center mt-3 text-xs text-text-gray">
+                フレームデータを取得するプラグインです ✨
+              </div>
+            );
+          };
+
+          // Main App Component
+          const App = () => {
+            const [currentTab, setCurrentTab] = useState(TAB_TYPES.MD);
+            const [content, setContent] = useState('読み込み中...');
+            const [contentType, setContentType] = useState(CONTENT_TYPES.LOADING);
+            const [instruction, setInstruction] = useState('test.mdファイルの内容を表示中');
+
+            // Figmaプラグインからのメッセージを受信
+            useEffect(() => {
+              const handleMessage = (event) => {
+                const msg = event.data.pluginMessage;
+
+                if (msg.type === MESSAGE_TYPES.CONTENT_LOADED) {
+                  setContent(msg.content);
+                  setContentType(CONTENT_TYPES.DEFAULT);
+                  setInstruction('test.mdファイルの内容を表示中です');
+                }
+
+                if (msg.type === MESSAGE_TYPES.FRAME_DATA_LOADED) {
+                  const frameData = msg.frameData;
+
+                  if (frameData.error) {
+                    setContent(frameData.message);
+                    setContentType(CONTENT_TYPES.ERROR);
+                  } else {
+                    const jsonString = JSON.stringify(frameData.data, null, 2);
+                    setContent(jsonString);
+                    setContentType(CONTENT_TYPES.JSON);
+                    setInstruction(`フレーム「${frameData.data.name}」のデータを表示中です`);
+                  }
+                }
+              };
+
+              window.addEventListener('message', handleMessage);
+              return () => window.removeEventListener('message', handleMessage);
+            }, []);
+
+            // タブ切り替え処理
+            const handleTabChange = (tab) => {
+              setCurrentTab(tab);
+
+              if (tab === TAB_TYPES.MD) {
+                requestContent();
+              } else if (tab === TAB_TYPES.FRAME) {
+                setInstruction('フレームを選択してから「フレームデータ取得」ボタンを押してください');
+                setContent('フレームが選択されていません...\n\n1. Figmaでフレームを選択する\n2. 「フレームデータ取得」ボタンを押す\n3. フレーム情報がJSONで表示される');
+                setContentType(CONTENT_TYPES.DEFAULT);
+              }
+            };
+
+            // 初期化
+            useEffect(() => {
+              setTimeout(() => {
+                requestContent();
+              }, 300);
+            }, []);
+
+            return (
+              <div className="max-w-full bg-white rounded-2xl p-5 shadow-2xl mb-5">
+                <Header />
+                <Tabs currentTab={currentTab} onTabChange={handleTabChange} />
+                <Instruction message={instruction} />
+                <Content content={content} contentType={contentType} />
+                <Buttons
+                  onRequestContent={requestContent}
+                  onRequestFrameData={requestFrameData}
+                  onClose={closePlugin}
+                />
+                <Footer />
+              </div>
+            );
+          };
+
+    // React DOM Render
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+          root.render(<App />);
   </script>
 </body>
 </html>

@@ -3,7 +3,7 @@
   "id": "test-md-reader-zundamon",
   "api": "1.0.0",
   "main": "code.js",
-  "ui": "ui-vanilla.html",
+  "ui": "ui.html",
   "capabilities": [],
   "enableProposedApi": false,
   "editorType": [
@@ -12,7 +12,8 @@
   ],
   "networkAccess": {
     "allowedDomains": [
-      "none"
+      "cdn.tailwindcss.com",
+      "unpkg.com"
     ]
   }
 } 
